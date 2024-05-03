@@ -6,89 +6,174 @@ const app = express();
 const port = 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.urlencoded({ extended: true }));
+
+// Función para mostrar mensajes de respuesta
+function mostrarRespuesta(res, mensaje) {
+  const htmlContent = `
+    <head>
+      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+        integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous" />
+    </head>
+
+    <div class="row w-75 m-auto">
+      <div class="col-12 mt-3">
+        
+        <a href="/" class="btn btn-primary">Volver a la página principal</a>
+
+
+        <p>${mensaje}</p>
+      </div>
+    </div>
+  `;
+
+  res.send(htmlContent);
+}
 
 // Ruta para crear un archivo
-app.get('/crear', (req, res) => {
-  const nombreArchivo = req.query.archivo;
-  const contenidoArchivo = req.query.contenido;
+app.post('/crear', (req, res) => {
+  const { nombre, extension, contenido } = req.body;
 
   const fechaActual = new Date();
   const fechaFormateada = `${fechaActual.getDate()}/${fechaActual.getMonth() + 1}/${fechaActual.getFullYear()}`;
-
-  const contenidoCompleto = `${fechaFormateada}\n${contenidoArchivo}`;
+  const nombreCompletoArchivo = `${nombre}.${extension}`;
+  const contenidoCompleto = `${fechaFormateada}\n${contenido}`;
 
   try {
-    fs.writeFileSync(`public/archivos/${nombreArchivo}`, contenidoCompleto);
-    res.send('Archivo creado exitosamente');
+    fs.writeFileSync(`public/archivos/${nombreCompletoArchivo}`, contenidoCompleto);
+    mostrarRespuesta(res, 'Archivo creado exitosamente');
   } catch (error) {
     console.error(error);
-    res.send('Error al crear el archivo');
+    mostrarRespuesta(res, 'Error al crear el archivo');
   }
 });
 
-// Ruta para leer un archivo
-app.get('/leer', (req, res) => {
-  const nombreArchivo = req.query.archivo;
+// Ruta para ver un archivo
+app.get('/ver', (req, res) => {
+  const { nombre, extension } = req.query;
+  const nombreCompletoArchivo = `${nombre}.${extension}`;
 
   try {
-    const contenidoArchivo = fs.readFileSync(`public/archivos/${nombreArchivo}`, 'utf8');
+    const contenidoArchivo = fs.readFileSync(`public/archivos/${nombreCompletoArchivo}`, 'utf8');
     res.send(contenidoArchivo);
+    mostrarRespuesta(res, 'Archivo leído exitosamente');
   } catch (error) {
     console.error(error);
-    res.send('Error al leer el archivo');
+    mostrarRespuesta(res, 'Error al leer el archivo');
   }
 });
 
-// Ruta para renombrar un archivo
-app.get('/renombrar', (req, res) => {
-  const nombreActual = req.query.nombre;
-  const nuevoNombre = req.query.nuevoNombre;
+
+// Ruta para editar un archivo
+app.post('/editar', (req, res) => {
+  const { nombre, extension, nuevoContenido } = req.body;
+  const nombreCompletoArchivo = `${nombre}.${extension}`;
 
   try {
-    fs.renameSync(`public/archivos/${nombreActual}`, `public/archivos/${nuevoNombre}`);
-    res.send(`Archivo renombrado exitosamente: ${nombreActual} -> ${nuevoNombre}`);
+    fs.writeFileSync(`public/archivos/${nombreCompletoArchivo}`, nuevoContenido);
+    mostrarRespuesta(res, 'Archivo actualizado exitosamente');
   } catch (error) {
     console.error(error);
-    res.send('Error al renombrar el archivo');
+    mostrarRespuesta(res, 'Error al guardar el archivo');
   }
 });
 
 // Ruta para eliminar un archivo
-app.get('/eliminar', (req, res) => {
-  const nombreArchivo = req.query.archivo;
+app.post('/eliminar', (req, res) => {
+  const { nombre, extension } = req.body;
+  const nombreCompletoArchivo = `${nombre}.${extension}`;
 
   try {
-    fs.unlinkSync(`public/archivos/${nombreArchivo}`);
-    res.send(`Archivo eliminado exitosamente: ${nombreArchivo}`);
+    fs.unlinkSync(`public/archivos/${nombreCompletoArchivo}`);
+    mostrarRespuesta(res, 'Archivo eliminado exitosamente');
   } catch (error) {
     console.error(error);
-    res.send('Error al eliminar el archivo');
+    mostrarRespuesta(res, 'Error al eliminar el archivo');
   }
 });
 
 // Ruta raíz (/)
 app.get('/', (req, res) => {
-    const links = [
-      { path: '/crear', label: 'Crear archivo' },
-      { path: '/leer', label: 'Leer archivo' },
-      { path: '/renombrar', label: 'Renombrar archivo' },
-      { path: '/eliminar', label: 'Eliminar archivo' },
-    ];
-  
-    const htmlResponse = `
-      <h1>Bienvenido al servidor de archivos</h1>
-      <ul>
-        ${links.map((link) => `
-          <li><a href="${link.path}">${link.label}</a></li>
-        `).join('')}
-      </ul>
-    `;
-  
-    res.send(htmlResponse);
-  });
-  
+  const htmlContent = `
+    <head>
+      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+        integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous" />
+    </head>
 
+    <div class="row w-75 m-auto">
+      <!-- Crear -->
+      <div class="col-12 col-sm-3 contaienr p-5">
+        <h3>Crear un archivo</h3>
+        <form action="/crear" method="post">
+          <div class="form-group">
+            Nombre del archivo
+            <input name="nombre" class="form-control" id="nombre" />
+          </div>
+          <div class="form-group">
+            Extensión del archivo
+            <input name="extension" class="form-control" id="extension" />
+          </div>
+          <div class="form-group">
+            Contenido
+            <textarea name="contenido" class="form-control" id="contenido" cols="30" rows="10"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Crear archivo</button>
+        </form>
+      </div>
+      <!-- Leer -->
+      <div class="col-12 col-sm-3 contaienr p-5">
+        <h3>Leer un archivo</h3>
+        <form action="/ver">
+          <div class="form-group">
+            Nombre del archivo
+            <input name="nombre" class="form-control" id="nombre" />
+          </div>
+          <div class="form-group">
+            Extensión del archivo
+            <input name="extension" class="form-control" id="extension" />
+          </div>
+          <button type="submit" class="btn btn-info">Consultar archivo</button>
+        </form>
+      </div>
+      <!-- Editar -->
+      <div class="col-12 col-sm-3 contaienr p-5">
+        <h3>Editar un archivo</h3>
+        <form action="/editar" method="post">
+          <div class="form-group">
+            Nombre del archivo
+            <input name="nombre" class="form-control" id="nombre" />
+          </div>
+          <div class="form-group">
+            Extensión del archivo
+            <input name="extension" class="form-control" id="extension" />
+          </div>
+          <div class="form-group">
+            Nuevo contenido
+            <textarea name="nuevoContenido" class="form-control" id="nuevoContenido" cols="30" rows="10"></textarea>
+          </div>
+          <button type="submit" class="btn btn-warning">Editar archivo</button>
+        </form>
+      </div>
+      <!-- Eliminar -->
+      <div class="col-12 col-sm-3 contaienr p-5">
+        <h3>Eliminar un archivo</h3>
+        <form action="/eliminar" method="post">
+          <div class="form-group">
+            Nombre del archivo
+            <input name="nombre" class="form-control" id="nombre" />
+          </div>
+          <div class="form-group">
+            Extensión del archivo
+            <input name="extension" class="form-control" id="extension" />
+          </div>
+          <button type="submit" class="btn btn-danger">Eliminar archivo</button>
+        </form>
+      </div>
+    </div>
+  `;
 
+  res.send(htmlContent);
+});
 
 app.listen(port, () => {
   console.log(`Servidor escuchando en el puerto ${port}`);

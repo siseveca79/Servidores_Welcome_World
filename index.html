@@ -23,7 +23,7 @@
   <!-- Leer -->
   <div class="col-12 col-sm-3 contaienr p-5">
     <h3>Leer un archivo</h3>
-    <form action="/leer">
+    <form action="/ver">
       <div class="form-group">
         Nombre del archivo
         <input name="archivo" class="form-control" id="archivo" />
@@ -61,3 +61,33 @@
     </form>
   </div>
 </div>
+
+<script>
+  // Función para mostrar mensajes de respuesta
+  function mostrarRespuesta(formulario, mensaje) {
+    const respuestaElement = formulario.querySelector('#crearRespuesta');
+    respuestaElement.innerText = mensaje;
+  }
+
+  // Obtener el formulario de creación y agregar un event listener para manejar la respuesta
+  const crearFormulario = document.getElementById('crearForm');
+  crearFormulario.addEventListener('submit', async (event) => {
+    event.preventDefault(); // Evitar que se envíe el formulario por defecto
+
+    const formData = new FormData(crearFormulario); // Obtener datos del formulario
+    const url = crearFormulario.getAttribute('action'); // Obtener la URL de la acción del formulario
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.text();
+      mostrarRespuesta(crearFormulario, data);
+    } catch (error) {
+      console.error('Error:', error);
+      mostrarRespuesta(crearFormulario, 'Error al realizar la operación');
+    }
+  });
+</script>
